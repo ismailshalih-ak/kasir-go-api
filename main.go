@@ -16,8 +16,9 @@ type Product struct {
 }
 
 type Category struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 var products = []Product{
@@ -26,8 +27,8 @@ var products = []Product{
 }
 
 var categories = []Category{
-	{ID: 1, Name: "Minuman"},
-	{ID: 2, Name: "Makanan"},
+	{ID: 1, Name: "Minuman", Description: "Segala jenis minuman"},
+	{ID: 2, Name: "Makanan", Description: "Segala jenis makanan"},
 }
 
 var newIdIncrement = 3
