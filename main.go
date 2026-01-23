@@ -15,12 +15,23 @@ type Product struct {
 	Stock int    `json:"stock"`
 }
 
+type Category struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 var products = []Product{
 	{ID: 1, Name: "Kopi Susu", Price: 5000, Stock: 100},
 	{ID: 2, Name: "Es Teh", Price: 3000, Stock: 100},
 }
 
+var categories = []Category{
+	{ID: 1, Name: "Minuman"},
+	{ID: 2, Name: "Makanan"},
+}
+
 var newIdIncrement = 3
+var newCategoryIdIncrement = 3
 
 func main() {
 	//get product detail
@@ -101,6 +112,88 @@ func main() {
 			newIdIncrement++
 			products = append(products, newProduct)
 			json.NewEncoder(res).Encode(newProduct)
+			return
+		}
+	})
+
+	//get category detail
+	http.HandleFunc("/api/categories/", func(res http.ResponseWriter, req *http.Request) {
+		idStr := strings.TrimPrefix(req.URL.Path, "/api/categories/")
+		id, err := strconv.Atoi(idStr)
+
+		if err != nil {
+			fmt.Println(err)
+			http.Error(res, "Invalid request", http.StatusBadRequest)
+			return
+		}
+
+		var searchedCategory Category
+		var searchedCategoryIdx = -1
+
+		for i, category := range categories {
+			if category.ID == id {
+				res.Header().Set("Content-Type", "application/json")
+				searchedCategory = category
+				searchedCategoryIdx = i
+				break
+			}
+		}
+
+		if searchedCategoryIdx == -1 {
+			http.Error(res, "Category not found", http.StatusNotFound)
+		}
+
+		switch req.Method {
+		case "GET":
+			json.NewEncoder(res).Encode(searchedCategory)
+			return
+
+		case "PUT":
+			var newCategory Category
+			err := json.NewDecoder(req.Body).Decode(&newCategory)
+			categories[searchedCategoryIdx] = newCategory
+			categories[searchedCategoryIdx].ID = searchedCategory.ID
+
+			json.NewEncoder(res).Encode(categories[searchedCategoryIdx])
+
+			if err != nil {
+				fmt.Println(err)
+				http.Error(res, "Invalid request", http.StatusBadRequest)
+				return
+			}
+			return
+		case "DELETE":
+			categories = append(categories[:searchedCategoryIdx], categories[searchedCategoryIdx+1:]...)
+			json.NewEncoder(res).Encode(map[string]string{
+				"status":  "ok",
+				"message": "Category deleted",
+			})
+		}
+	})
+
+	//get category list
+	//post category
+	http.HandleFunc("/api/categories", func(res http.ResponseWriter, req *http.Request) {
+		switch req.Method {
+		case "GET":
+			res.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(res).Encode(categories)
+			return
+
+		case "POST":
+			var newCategory Category
+			err := json.NewDecoder(req.Body).Decode(&newCategory)
+
+			if err != nil {
+				fmt.Println(err)
+				http.Error(res, "Invalid request", http.StatusBadRequest)
+				return
+			}
+
+			newCategory.ID = newCategoryIdIncrement
+			newCategoryIdIncrement++
+			categories = append(categories, newCategory)
+			json.NewEncoder(res).Encode(newCategory)
 			return
 		}
 	})
