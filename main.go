@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -19,6 +20,16 @@ import (
 type Config struct {
 	Port   string `mapstructure:"PORT"`
 	DBConn string `mapstructure:"DB_CONN"`
+}
+
+// Simple logging middleware
+func logRequest(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		go log.Printf("START: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
+		next(w, r)
+		go log.Printf("END: %s %s %v", r.Method, r.URL.Path, time.Since(start))
+	}
 }
 
 func main() {
@@ -51,18 +62,18 @@ func main() {
 	productService := services.NewProductService(productRepo)
 	productHandler := handlers.NewProductHandler(productService)
 
-	// Setup routes
-	http.HandleFunc("/api/produk", productHandler.HandleProducts)
-	http.HandleFunc("/api/produk/", productHandler.HandleProductByID)
+	// Setup routes with logging
+	http.HandleFunc("/api/products", logRequest(productHandler.HandleProducts))
+	http.HandleFunc("/api/products/", logRequest(productHandler.HandleProductByID))
 
-	//health check
-	http.HandleFunc("/health", func(res http.ResponseWriter, req *http.Request) {
+	//health check with logging
+	http.HandleFunc("/health", logRequest(func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(res).Encode(map[string]string{
 			"status":  "ok",
 			"message": "Server is running",
 		})
-	})
+	}))
 
 	err = http.ListenAndServe(":"+config.Port, nil)
 
