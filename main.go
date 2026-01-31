@@ -62,9 +62,15 @@ func main() {
 	productService := services.NewProductService(productRepo)
 	productHandler := handlers.NewProductHandler(productService)
 
+	categoryRepo := repositories.NewCategoryRepository(db)
+	categoryService := services.NewCategoryService(categoryRepo)
+	categoryHandler := handlers.NewCategoryHandler(categoryService)
+
 	// Setup routes with logging
 	http.HandleFunc("/api/products", logRequest(productHandler.HandleProducts))
 	http.HandleFunc("/api/products/", logRequest(productHandler.HandleProductByID))
+	http.HandleFunc("/api/categories", logRequest(categoryHandler.HandleCategories))
+	http.HandleFunc("/api/categories/", logRequest(categoryHandler.HandleCategoryByID))
 
 	//health check with logging
 	http.HandleFunc("/health", logRequest(func(res http.ResponseWriter, req *http.Request) {
