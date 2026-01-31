@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: kasir-postgres
+    environment:
+      POSTGRES_DB: kasirdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d kasirdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kasir-network
+
+  kasir-api:
+    build: .
+    container_name: kasir-api
+    environment:
+      PORT: 8080
+      DB_CONN: postgres://postgres:password@postgres:5432/kasirdb?sslmode=disable
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - kasir-network
+    restart: unless-stopped
+
+networks:
+  kasir-network:
+    driver: bridge
