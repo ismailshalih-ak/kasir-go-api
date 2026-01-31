@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"kasir-go-api/database"
+	"kasir-go-api/handlers"
+	"kasir-go-api/repositories"
+	"kasir-go-api/services"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/spf13/viper"
 )
@@ -19,39 +20,6 @@ type Config struct {
 	Port   string `mapstructure:"PORT"`
 	DBConn string `mapstructure:"DB_CONN"`
 }
-
-type Product struct {
-	ID         int        `json:"id"`
-	Name       string     `json:"name"`
-	Price      int        `json:"price"`
-	Stock      int        `json:"stock"`
-	CategoryID *int       `json:"category_id,omitempty"`
-	CreatedAt  time.Time  `json:"created_at"`
-	UpdatedAt  time.Time  `json:"updated_at"`
-	DeletedAt  *time.Time `json:"deleted_at,omitempty"`
-}
-
-type Category struct {
-	ID          int        `json:"id"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
-	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
-}
-
-var products = []Product{
-	{ID: 1, Name: "Kopi Susu", Price: 5000, Stock: 100},
-	{ID: 2, Name: "Es Teh", Price: 3000, Stock: 100},
-}
-
-var categories = []Category{
-	{ID: 1, Name: "Minuman", Description: "Segala jenis minuman"},
-	{ID: 2, Name: "Makanan", Description: "Segala jenis makanan"},
-}
-
-var newIdIncrement = 3
-var newCategoryIdIncrement = 3
 
 func main() {
 	viper.AutomaticEnv()
@@ -79,169 +47,13 @@ func main() {
 		log.Fatal("Failed to run migrations:", err)
 	}
 
-	//get product detail
-	http.HandleFunc("/api/products/", func(res http.ResponseWriter, req *http.Request) {
-		idStr := strings.TrimPrefix(req.URL.Path, "/api/products/")
-		id, err := strconv.Atoi(idStr)
+	productRepo := repositories.NewProductRepository(db)
+	productService := services.NewProductService(productRepo)
+	productHandler := handlers.NewProductHandler(productService)
 
-		if err != nil {
-			fmt.Println(err)
-			http.Error(res, "Invalid request", http.StatusBadRequest)
-			return
-		}
-
-		var searchedProduct Product
-		var searchedProductIdx = -1
-
-		for i, product := range products {
-			if product.ID == id {
-				res.Header().Set("Content-Type", "application/json")
-				searchedProduct = product
-				searchedProductIdx = i
-				break
-			}
-		}
-
-		if searchedProductIdx == -1 {
-			http.Error(res, "Product not found", http.StatusNotFound)
-		}
-
-		switch req.Method {
-		case "GET":
-			json.NewEncoder(res).Encode(searchedProduct)
-			return
-
-		case "PUT":
-			var newProduct Product
-			err := json.NewDecoder(req.Body).Decode(&newProduct)
-			products[searchedProductIdx] = newProduct
-			products[searchedProductIdx].ID = searchedProduct.ID
-
-			json.NewEncoder(res).Encode(products[searchedProductIdx])
-
-			if err != nil {
-				fmt.Println(err)
-				http.Error(res, "Invalid request", http.StatusBadRequest)
-				return
-			}
-			return
-		case "DELETE":
-			products = append(products[:searchedProductIdx], products[searchedProductIdx+1:]...)
-			json.NewEncoder(res).Encode(map[string]string{
-				"status":  "ok",
-				"message": "Product deleted",
-			})
-		}
-	})
-
-	//get product list
-	//post product
-	http.HandleFunc("/api/products", func(res http.ResponseWriter, req *http.Request) {
-		switch req.Method {
-		case "GET":
-			res.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(res).Encode(products)
-			return
-
-		case "POST":
-			var newProduct Product
-			err := json.NewDecoder(req.Body).Decode(&newProduct)
-
-			if err != nil {
-				fmt.Println(err)
-				http.Error(res, "Invalid request", http.StatusBadRequest)
-				return
-			}
-
-			newProduct.ID = newIdIncrement
-			newIdIncrement++
-			products = append(products, newProduct)
-			json.NewEncoder(res).Encode(newProduct)
-			return
-		}
-	})
-
-	//get category detail
-	http.HandleFunc("/api/categories/", func(res http.ResponseWriter, req *http.Request) {
-		idStr := strings.TrimPrefix(req.URL.Path, "/api/categories/")
-		id, err := strconv.Atoi(idStr)
-
-		if err != nil {
-			fmt.Println(err)
-			http.Error(res, "Invalid request", http.StatusBadRequest)
-			return
-		}
-
-		var searchedCategory Category
-		var searchedCategoryIdx = -1
-
-		for i, category := range categories {
-			if category.ID == id {
-				res.Header().Set("Content-Type", "application/json")
-				searchedCategory = category
-				searchedCategoryIdx = i
-				break
-			}
-		}
-
-		if searchedCategoryIdx == -1 {
-			http.Error(res, "Category not found", http.StatusNotFound)
-		}
-
-		switch req.Method {
-		case "GET":
-			json.NewEncoder(res).Encode(searchedCategory)
-			return
-
-		case "PUT":
-			var newCategory Category
-			err := json.NewDecoder(req.Body).Decode(&newCategory)
-			categories[searchedCategoryIdx] = newCategory
-			categories[searchedCategoryIdx].ID = searchedCategory.ID
-
-			json.NewEncoder(res).Encode(categories[searchedCategoryIdx])
-
-			if err != nil {
-				fmt.Println(err)
-				http.Error(res, "Invalid request", http.StatusBadRequest)
-				return
-			}
-			return
-		case "DELETE":
-			categories = append(categories[:searchedCategoryIdx], categories[searchedCategoryIdx+1:]...)
-			json.NewEncoder(res).Encode(map[string]string{
-				"status":  "ok",
-				"message": "Category deleted",
-			})
-		}
-	})
-
-	//get category list
-	//post category
-	http.HandleFunc("/api/categories", func(res http.ResponseWriter, req *http.Request) {
-		switch req.Method {
-		case "GET":
-			res.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(res).Encode(categories)
-			return
-
-		case "POST":
-			var newCategory Category
-			err := json.NewDecoder(req.Body).Decode(&newCategory)
-
-			if err != nil {
-				fmt.Println(err)
-				http.Error(res, "Invalid request", http.StatusBadRequest)
-				return
-			}
-
-			newCategory.ID = newCategoryIdIncrement
-			newCategoryIdIncrement++
-			categories = append(categories, newCategory)
-			json.NewEncoder(res).Encode(newCategory)
-			return
-		}
-	})
+	// Setup routes
+	http.HandleFunc("/api/produk", productHandler.HandleProducts)
+	http.HandleFunc("/api/produk/", productHandler.HandleProductByID)
 
 	//health check
 	http.HandleFunc("/health", func(res http.ResponseWriter, req *http.Request) {
