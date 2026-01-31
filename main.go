@@ -67,10 +67,10 @@ func main() {
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
 
 	// Setup routes with logging
-	http.HandleFunc("/api/products", logRequest(productHandler.HandleProducts))
 	http.HandleFunc("/api/products/", logRequest(productHandler.HandleProductByID))
-	http.HandleFunc("/api/categories", logRequest(categoryHandler.HandleCategories))
+	http.HandleFunc("/api/products", logRequest(productHandler.HandleProducts))
 	http.HandleFunc("/api/categories/", logRequest(categoryHandler.HandleCategoryByID))
+	http.HandleFunc("/api/categories", logRequest(categoryHandler.HandleCategories))
 
 	//health check with logging
 	http.HandleFunc("/health", logRequest(func(res http.ResponseWriter, req *http.Request) {
