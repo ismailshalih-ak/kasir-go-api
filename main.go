@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -20,16 +21,23 @@ type Config struct {
 }
 
 type Product struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Price int    `json:"price"`
-	Stock int    `json:"stock"`
+	ID         int        `json:"id"`
+	Name       string     `json:"name"`
+	Price      int        `json:"price"`
+	Stock      int        `json:"stock"`
+	CategoryID *int       `json:"category_id,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+	DeletedAt  *time.Time `json:"deleted_at,omitempty"`
 }
 
 type Category struct {
-	ID          int    `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	ID          int        `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
 }
 
 var products = []Product{
@@ -65,6 +73,11 @@ func main() {
 		log.Fatal("Failed to initialize database:", err)
 	}
 	defer db.Close()
+
+	// Run database migrations
+	if err := database.RunMigrations(db, "database/migrations"); err != nil {
+		log.Fatal("Failed to run migrations:", err)
+	}
 
 	//get product detail
 	http.HandleFunc("/api/products/", func(res http.ResponseWriter, req *http.Request) {

@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS products (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMPTZ,
+    name VARCHAR(255),
+    price INTEGER,
+    stock INTEGER,
+    category_id INTEGER REFERENCES categories(id)
+);
