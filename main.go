@@ -244,6 +244,6 @@ func main() {
 	fmt.Println("Server running at port " + config.Port)
 
 	if err != nil {
-		fmt.Println("Failed to run server")
+		fmt.Println("Failed to run server", err)
 	}
 }
